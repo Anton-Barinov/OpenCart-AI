@@ -105,6 +105,35 @@ run_test("SchemaAdapter OpenCart 2.x/3.x/4.x Query Compatibility", function() {
     assert($schema4->getMajorVersion() === '4.x');
 });
 
+// 6. Garbage Data Fuzzing & Malformed JSON-RPC Requests
+run_test("Garbage Data Fuzzing & Protocol Robustness", function() {
+    $server = new \OpenCartMcp\Protocol\McpServer(new SecurityPolicy());
+
+    // 1. Empty string
+    $r1 = json_decode($server->handleRaw(''), true);
+    assert($r1['error']['code'] === -32700, "Empty input must return parse error -32700");
+
+    // 2. Corrupted JSON syntax
+    $r2 = json_decode($server->handleRaw('{"jsonrpc": "2.0", "broken'), true);
+    assert($r2['error']['code'] === -32700, "Corrupted JSON must return parse error -32700");
+
+    // 3. Method property is not a string
+    $r3 = json_decode($server->handleRaw('{"jsonrpc": "2.0", "id": 1, "method": 999}'), true);
+    assert($r3['error']['code'] === -32600, "Non-string method must return invalid request -32600");
+
+    // 4. Non-existent method call
+    $r4 = json_decode($server->handleRaw('{"jsonrpc": "2.0", "id": 42, "method": "ghost_unknown_tool"}'), true);
+    assert($r4['error']['code'] === -32601, "Unknown method must return method not found -32601");
+
+    // 5. Empty batch array
+    $r5 = json_decode($server->handleRaw('[]'), true);
+    assert($r5['error']['code'] === -32600, "Empty batch must return invalid request -32600");
+
+    // 6. Extreme negative ID & type confusion in params
+    $r6 = json_decode($server->handleRaw('{"jsonrpc": "2.0", "id": -999999999, "method": "ping", "params": "string_instead_of_object"}'), true);
+    assert($r6['id'] === -999999999, "Extreme negative ID must be preserved in response");
+});
+
 echo "\n--------------------------------------------------------\n";
 echo "Chaos Results: {$passed} Passed, {$failed} Failed\n";
 echo "--------------------------------------------------------\n";
