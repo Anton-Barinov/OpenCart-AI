@@ -10,12 +10,13 @@
             <search><![CDATA[// Extension]]></search>
             <add position="before"><![CDATA[
 			// OpenCart-AI Sidebar Shortcut
-			if ($this->user->hasPermission('access', 'extension/module/opencart_ai')) {
+			if ($this->user->hasPermission('access', 'extension/module/opencart_ai') || $this->user->hasPermission('access', 'module/opencart_ai')) {
 				$ai_token_param = isset($this->session->data['user_token']) ? 'user_token=' . $this->session->data['user_token'] : (isset($this->session->data['token']) ? 'token=' . $this->session->data['token'] : '');
+				$ai_route = version_compare(defined('VERSION') ? VERSION : '2.3.0.0', '2.3.0.0', '<') ? 'module/opencart_ai' : 'extension/module/opencart_ai';
 				$ai_children = array();
 				$ai_children[] = array(
 					'name'	   => 'AI Bridge &amp; MCP',
-					'href'     => $this->url->link('extension/module/opencart_ai', $ai_token_param, true),
+					'href'     => $this->url->link($ai_route, $ai_token_param, true),
 					'children' => array()
 				);
 

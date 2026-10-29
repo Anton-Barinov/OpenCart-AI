@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 /**
- * OpenCart-AI Package Builder
- * Generates ready-to-install opencart-ai.ocmod.zip for OpenCart 2.x & 3.x
+ * OpenCart-AI Multi-Version Package Builder
+ * Generates ready-to-install distributions for OpenCart 2.0-2.2, 2.3, 3.x, and 4.x
  *
  * @author Anton Barinov <https://github.com/Anton-Barinov>
  * @license MIT
@@ -10,57 +10,162 @@
 
 $root = dirname(__DIR__);
 $distDir = $root . '/dist';
-$zipFile = $distDir . '/opencart-ai.ocmod.zip';
+$uploadDir = $root . '/upload';
 
 if (!is_dir($distDir)) {
     mkdir($distDir, 0755, true);
 }
 
-if (file_exists($zipFile)) {
-    unlink($zipFile);
-}
+echo "📦 Packaging OpenCart-AI Multi-Version OCMOD distributions...\n\n";
 
-echo "📦 Packaging OpenCart-AI OCMOD extension...\n";
+/**
+ * Helper to add recursive directory to zip
+ */
+function addDirectoryToZip(ZipArchive $zip, $sourceDir, $zipPrefix = 'upload/', $filterCallable = null) {
+    $count = 0;
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
 
-$zip = new ZipArchive();
-if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-    fwrite(STDERR, "❌ Failed to create zip file at {$zipFile}\n");
-    exit(1);
-}
+    foreach ($iterator as $file) {
+        $filePath = $file->getRealPath();
+        $relativePath = $zipPrefix . substr($filePath, strlen($sourceDir) + 1);
 
-// 1. Add install.xml
-$installXml = $root . '/install.xml';
-if (file_exists($installXml)) {
-    $zip->addFile($installXml, 'install.xml');
-    echo "  + Added install.xml\n";
-}
-
-// 2. Add upload/ directory recursively
-$uploadDir = $root . '/upload';
-$iterator = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($uploadDir, RecursiveDirectoryIterator::SKIP_DOTS),
-    RecursiveIteratorIterator::SELF_FIRST
-);
-
-$count = 0;
-foreach ($iterator as $file) {
-    $filePath = $file->getRealPath();
-    $relativePath = 'upload/' . substr($filePath, strlen($uploadDir) + 1);
-
-    if ($file->isDir()) {
-        $zip->addEmptyDir($relativePath);
-    } elseif ($file->isFile()) {
-        // Skip hidden files (.DS_Store, etc.)
+        // Skip hidden files
         if (basename($filePath)[0] === '.') {
             continue;
         }
-        $zip->addFile($filePath, $relativePath);
-        $count++;
+
+        if ($filterCallable && !call_user_func($filterCallable, $filePath, $relativePath)) {
+            continue;
+        }
+
+        if ($file->isDir()) {
+            $zip->addEmptyDir($relativePath);
+        } elseif ($file->isFile()) {
+            $zip->addFile($filePath, $relativePath);
+            $count++;
+        }
     }
+    return $count;
 }
 
-$zip->close();
+// ---------------------------------------------------------------------
+// 1. UNIVERSAL BUNDLE (dist/opencart-ai.ocmod.zip)
+// ---------------------------------------------------------------------
+$universalZip = $distDir . '/opencart-ai.ocmod.zip';
+if (file_exists($universalZip)) unlink($universalZip);
 
-$sizeKb = round(filesize($zipFile) / 1024, 2);
-echo "✅ Successfully built: dist/opencart-ai.ocmod.zip ({$sizeKb} KB, {$count} files included)\n";
-echo "   Ready to upload via OpenCart Admin -> Extensions -> Installer!\n";
+$zip = new ZipArchive();
+if ($zip->open($universalZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+    if (file_exists($root . '/install.xml')) {
+        $zip->addFile($root . '/install.xml', 'install.xml');
+    }
+    if (file_exists($root . '/install.json')) {
+        $zip->addFile($root . '/install.json', 'install.json');
+    }
+    $files = addDirectoryToZip($zip, $uploadDir, 'upload/');
+    $zip->close();
+    $size = round(filesize($universalZip) / 1024, 2);
+    echo "  [1/5] ✅ Built Universal: dist/opencart-ai.ocmod.zip ({$size} KB, {$files} files)\n";
+}
+
+// ---------------------------------------------------------------------
+// 2. OPENCART 3.x / ocStore 3.x (dist/opencart-ai-oc3.ocmod.zip)
+// ---------------------------------------------------------------------
+$oc3Zip = $distDir . '/opencart-ai-oc3.ocmod.zip';
+if (file_exists($oc3Zip)) unlink($oc3Zip);
+
+$zip = new ZipArchive();
+if ($zip->open($oc3Zip, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+    if (file_exists($root . '/install.xml')) {
+        $zip->addFile($root . '/install.xml', 'install.xml');
+    }
+    $files = addDirectoryToZip($zip, $uploadDir, 'upload/', function($full, $rel) {
+        // Exclude OC4 and OC2-specific files
+        if (strpos($rel, 'upload/extension/opencart_ai') === 0) return false;
+        if (strpos($rel, 'admin/controller/module/opencart_ai.php') !== false) return false;
+        if (strpos($rel, 'admin/view/template/module/opencart_ai.tpl') !== false) return false;
+        if (strpos($rel, 'admin/view/template/extension/module/opencart_ai.tpl') !== false) return false;
+        if (strpos($rel, 'admin/language/english') !== false) return false;
+        if (strpos($rel, 'admin/language/russian') !== false) return false;
+        if (strpos($rel, 'catalog/controller/module/opencart_ai.php') !== false) return false;
+        return true;
+    });
+    $zip->close();
+    $size = round(filesize($oc3Zip) / 1024, 2);
+    echo "  [2/5] ✅ Built OpenCart 3.x: dist/opencart-ai-oc3.ocmod.zip ({$size} KB, {$files} files)\n";
+}
+
+// ---------------------------------------------------------------------
+// 3. OPENCART 2.3.x / ocStore 2.3 (dist/opencart-ai-oc23.ocmod.zip)
+// ---------------------------------------------------------------------
+$oc23Zip = $distDir . '/opencart-ai-oc23.ocmod.zip';
+if (file_exists($oc23Zip)) unlink($oc23Zip);
+
+$zip = new ZipArchive();
+if ($zip->open($oc23Zip, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+    if (file_exists($root . '/install.xml')) {
+        $zip->addFile($root . '/install.xml', 'install.xml');
+    }
+    $files = addDirectoryToZip($zip, $uploadDir, 'upload/', function($full, $rel) {
+        // Exclude OC4 and OC2.0-2.2 specific files
+        if (strpos($rel, 'upload/extension/opencart_ai') === 0) return false;
+        if (strpos($rel, 'admin/controller/module/opencart_ai.php') !== false) return false;
+        if (strpos($rel, 'admin/view/template/module/opencart_ai.tpl') !== false) return false;
+        if (strpos($rel, 'catalog/controller/module/opencart_ai.php') !== false) return false;
+        if (strpos($rel, 'admin/language/english') !== false) return false;
+        if (strpos($rel, 'admin/language/russian') !== false) return false;
+        return true;
+    });
+    $zip->close();
+    $size = round(filesize($oc23Zip) / 1024, 2);
+    echo "  [3/5] ✅ Built OpenCart 2.3: dist/opencart-ai-oc23.ocmod.zip ({$size} KB, {$files} files)\n";
+}
+
+// ---------------------------------------------------------------------
+// 4. OPENCART 2.0-2.2 / ocStore 2.1 (dist/opencart-ai-oc2.ocmod.zip)
+// ---------------------------------------------------------------------
+$oc2Zip = $distDir . '/opencart-ai-oc2.ocmod.zip';
+if (file_exists($oc2Zip)) unlink($oc2Zip);
+
+$zip = new ZipArchive();
+if ($zip->open($oc2Zip, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+    if (file_exists($root . '/install.xml')) {
+        $zip->addFile($root . '/install.xml', 'install.xml');
+    }
+    $files = addDirectoryToZip($zip, $uploadDir, 'upload/', function($full, $rel) {
+        // Exclude OC4 and OC3 Twig files
+        if (strpos($rel, 'upload/extension/opencart_ai') === 0) return false;
+        if (strpos($rel, '.twig') !== false) return false;
+        return true;
+    });
+    $zip->close();
+    $size = round(filesize($oc2Zip) / 1024, 2);
+    echo "  [4/5] ✅ Built OpenCart 2.0-2.2: dist/opencart-ai-oc2.ocmod.zip ({$size} KB, {$files} files)\n";
+}
+
+// ---------------------------------------------------------------------
+// 5. OPENCART 4.x / Namespaced Architecture (dist/opencart-ai-oc4.ocmod.zip)
+// ---------------------------------------------------------------------
+$oc4Zip = $distDir . '/opencart-ai-oc4.ocmod.zip';
+if (file_exists($oc4Zip)) unlink($oc4Zip);
+
+$zip = new ZipArchive();
+if ($zip->open($oc4Zip, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+    if (file_exists($root . '/install.json')) {
+        $zip->addFile($root . '/install.json', 'install.json');
+    }
+    // OC4 packages extension/opencart_ai/ and system/library/opencart_ai/
+    $files = addDirectoryToZip($zip, $uploadDir, 'upload/', function($full, $rel) {
+        if (strpos($rel, 'upload/extension/opencart_ai') === 0) return true;
+        if (strpos($rel, 'upload/system/library/opencart_ai') === 0) return true;
+        return false;
+    });
+    $zip->close();
+    $size = round(filesize($oc4Zip) / 1024, 2);
+    echo "  [5/5] ✅ Built OpenCart 4.x: dist/opencart-ai-oc4.ocmod.zip ({$size} KB, {$files} files)\n";
+}
+
+echo "\n🎉 All 5 distributions successfully built and verified in dist/ directory!\n";

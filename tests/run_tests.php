@@ -7,8 +7,11 @@
 $testFiles = [
     'Endpoint Tests' => __DIR__ . '/EndpointTest.php',
     'Admin Controller Tests' => __DIR__ . '/AdminControllerTest.php',
+    'Multi-Version Admin Tests' => __DIR__ . '/MultiVersionAdminTest.php',
     'Prompts & Configs Tests' => __DIR__ . '/PromptsTest.php',
     'OCMOD Package Tests' => __DIR__ . '/PackageTest.php',
+    'Multi-Distribution Package Tests' => __DIR__ . '/PackageVerificationTest.php',
+    'ocStore & CIS Distribution Tests' => __DIR__ . '/DistributionBuildsTest.php',
     'Chaos & Security Tests' => __DIR__ . '/ChaosTest.php',
 ];
 

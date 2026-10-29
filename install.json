@@ -1,0 +1,7 @@
+{
+  "name": "OpenCart-AI Model Context Protocol Bridge",
+  "version": "1.0.0",
+  "author": "Anton Barinov",
+  "link": "https://github.com/Anton-Barinov/OpenCart-AI",
+  "description": "Model Context Protocol (MCP) Bridge and Autonomous AI Agent for OpenCart 2.x, 3.x, and 4.x"
+}

@@ -95,12 +95,25 @@ Ready-to-use prompt workflows are provided in the [`prompts/`](prompts/) directo
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Distributions
+
+OpenCart-AI provides dedicated, battle-tested packages tailored for each OpenCart generation and distribution:
+
+| Package | OpenCart Editions & Distributions | Template Engine | Admin Token | Installation Method |
+| :--- | :--- | :---: | :---: | :--- |
+| **`opencart-ai.ocmod.zip`** | **Universal Bundle** (all versions 2.0 – 4.x) | Twig + TPL | Auto-detect | Admin &rarr; Extensions &rarr; Installer |
+| **`opencart-ai-oc3.ocmod.zip`** | **OpenCart 3.0.x / ocStore 3.0.x / BazarCMS 3.x / Prostore** | Twig | `user_token` | Admin &rarr; Extensions &rarr; Installer |
+| **`opencart-ai-oc23.ocmod.zip`** | **OpenCart 2.3.x / ocStore 2.3.x / OpenCart.pro 2.3** | PHP TPL | `token` | Admin &rarr; Extensions &rarr; Installer |
+| **`opencart-ai-oc2.ocmod.zip`** | **OpenCart 2.0.x – 2.2.x / ocStore 2.1** | PHP TPL | `token` | Admin &rarr; Extensions &rarr; Installer |
+| **`opencart-ai-oc4.ocmod.zip`** | **OpenCart 4.0.x / 4.1.x** (Namespaced Architecture) | Twig | `user_token` | Admin &rarr; Extensions &rarr; Installer (`install.json`) |
 
 ### Option A: OpenCart Extension Installer (Recommended)
-1. Download `opencart-ai.ocmod.zip` from [Releases](https://github.com/Anton-Barinov/OpenCart-AI/releases) or build it locally with `php bin/package-ocmod`.
+1. Download the package matching your store version from [Releases](https://github.com/Anton-Barinov/OpenCart-AI/releases) or build all packages locally:
+   ```bash
+   php bin/package-ocmod
+   ```
 2. Go to **Admin Panel** &rarr; **Extensions** &rarr; **Installer**.
-3. Upload `opencart-ai.ocmod.zip`.
+3. Upload `opencart-ai-oc3.ocmod.zip` (or your store's version package).
 4. Go to **Extensions** &rarr; **Modifications** and click the **Refresh** button (top right).
 5. Go to **Extensions** &rarr; **Extensions** &rarr; select **Modules** &rarr; find **OpenCart-AI** and click **Install** &rarr; **Edit**.
 6. Enable the bridge, click **Generate Key**, and save!
