@@ -55,12 +55,42 @@ class SecurityPolicy
         }
 
         foreach ($this->ipWhitelist as $allowed) {
-            if ($allowed === $ip || $allowed === '*' || $allowed === '127.0.0.1' && ($ip === '::1' || $ip === 'localhost')) {
+            if ($allowed === $ip || $allowed === '*' || ($allowed === '127.0.0.1' && ($ip === '::1' || $ip === 'localhost'))) {
+                return true;
+            }
+            if (strpos($allowed, '/') !== false && $this->ipInCidr($ip, $allowed)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Check if IPv4 address matches a CIDR range
+     *
+     * @param string $ip
+     * @param string $cidr
+     * @return bool
+     */
+    private function ipInCidr($ip, $cidr)
+    {
+        if (strpos($cidr, '/') === false) {
+            return false;
+        }
+        $parts = explode('/', $cidr, 2);
+        $subnet = $parts[0];
+        $bits = (int)$parts[1];
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) || !filter_var($subnet, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return false;
+        }
+
+        $ipLong = ip2long($ip);
+        $subnetLong = ip2long($subnet);
+        $mask = -1 << (32 - $bits);
+
+        return ($ipLong & $mask) === ($subnetLong & $mask);
     }
 
     /**
@@ -93,6 +123,34 @@ class SecurityPolicy
     public function areMutationsAllowed()
     {
         return $this->allowMutations;
+    }
+
+    /**
+     * Assert mutating operations are permitted or throw exception
+     *
+     * @throws \RuntimeException
+     */
+    public function assertMutationsAllowed()
+    {
+        if (!$this->allowMutations) {
+            throw new \RuntimeException("Forbidden: Mutating operations (updating prices, stocks, or orders) are disabled by store security policy.");
+        }
+    }
+
+    /**
+     * Alias for sanitizeCustomerRecord
+     */
+    public function maskCustomer(array $data)
+    {
+        return $this->sanitizeCustomerRecord($data);
+    }
+
+    /**
+     * Alias for sanitizeOrderRecord
+     */
+    public function maskOrder(array $order)
+    {
+        return $this->sanitizeOrderRecord($order);
     }
 
     /**

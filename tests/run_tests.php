@@ -9,6 +9,7 @@ $testFiles = [
     'Admin Controller Tests' => __DIR__ . '/AdminControllerTest.php',
     'Prompts & Configs Tests' => __DIR__ . '/PromptsTest.php',
     'OCMOD Package Tests' => __DIR__ . '/PackageTest.php',
+    'Chaos & Security Tests' => __DIR__ . '/ChaosTest.php',
 ];
 
 echo "🚀 Running OpenCart-AI Test Suite...\n\n";
