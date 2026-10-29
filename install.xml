@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>OpenCart-AI - E-Commerce MCP Bridge</name>
+    <code>opencart_ai_mcp</code>
+    <version>1.0.0</version>
+    <author>Anton Barinov</author>
+    <link>https://github.com/Anton-Barinov/OpenCart-AI</link>
+    <file path="admin/controller/common/column_left.php">
+        <operation>
+            <search><![CDATA[// Extension]]></search>
+            <add position="before"><![CDATA[
+			// OpenCart-AI Sidebar Shortcut
+			if ($this->user->hasPermission('access', 'extension/module/opencart_ai')) {
+				$ai_token_param = isset($this->session->data['user_token']) ? 'user_token=' . $this->session->data['user_token'] : (isset($this->session->data['token']) ? 'token=' . $this->session->data['token'] : '');
+				$ai_children = array();
+				$ai_children[] = array(
+					'name'	   => 'AI Bridge &amp; MCP',
+					'href'     => $this->url->link('extension/module/opencart_ai', $ai_token_param, true),
+					'children' => array()
+				);
+
+				$data['menus'][] = array(
+					'id'       => 'menu-opencart-ai',
+					'icon'	   => 'fa-bolt',
+					'name'	   => 'OpenCart-AI',
+					'href'     => '',
+					'children' => $ai_children
+				);
+			}
+            ]]></add>
+        </operation>
+    </file>
+</modification>

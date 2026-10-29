@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "opencart-ai": {
+      "url": "https://your-store.com/index.php?route=extension/module/opencart_ai/endpoint",
+      "headers": {
+        "Authorization": "Bearer YOUR_AI_MCP_TOKEN"
+      }
+    }
+  }
+}

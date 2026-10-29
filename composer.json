@@ -1,0 +1,40 @@
+{
+  "name": "anton-barinov/opencart-ai",
+  "description": "Production-grade AI Assistant & Model Context Protocol (MCP) Bridge for OpenCart 2.x, 3.x, and 4.x stores. Connect Claude Desktop, Cursor, and ChatGPT directly to your catalog and orders.",
+  "keywords": [
+    "opencart",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "cursor",
+    "chatgpt",
+    "ecommerce",
+    "ocmod",
+    "ai-agent"
+  ],
+  "homepage": "https://github.com/Anton-Barinov/OpenCart-AI",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Anton Barinov",
+      "homepage": "https://github.com/Anton-Barinov"
+    }
+  ],
+  "type": "opencart-extension",
+  "require": {
+    "php": ">=5.4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "OpenCartMcp\\": "upload/system/library/opencart_ai/"
+    }
+  },
+  "scripts": {
+    "test": "php tests/run_tests.php",
+    "package": "bin/package-ocmod"
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

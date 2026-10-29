@@ -1,0 +1,207 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="pull-right">
+        <button type="submit" form="form-opencart-ai" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i> Сохранить</button>
+        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i> Отмена</a>
+      </div>
+      <h1>{{ heading_title }}</h1>
+      <ul class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+        <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  <div class="container-fluid">
+    {% if error_warning %}
+    <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endif %}
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title"><i class="fa fa-cogs"></i> {{ text_edit }}</h3>
+      </div>
+      <div class="panel-body">
+        <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-opencart-ai" class="form-horizontal">
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#tab-general" data-toggle="tab"><i class="fa fa-sliders"></i> Основные настройки</a></li>
+            <li><a href="#tab-integration" data-toggle="tab"><i class="fa fa-plug"></i> Подключение к Claude / Cursor</a></li>
+            <li><a href="#tab-prompts" data-toggle="tab"><i class="fa fa-lightbulb-o"></i> Готовые сценарии и промпты</a></li>
+          </ul>
+
+          <div class="tab-content">
+            <!-- TAB 1: GENERAL -->
+            <div class="tab-pane active" id="tab-general">
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-status">Статус модуля</label>
+                <div class="col-sm-10">
+                  <select name="module_opencart_ai_status" id="input-status" class="form-control">
+                    {% if module_opencart_ai_status %}
+                    <option value="1" selected="selected">Включено</option>
+                    <option value="0">Отключено</option>
+                    {% else %}
+                    <option value="1">Включено</option>
+                    <option value="0" selected="selected">Отключено</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-token"><span data-toggle="tooltip" title="Секретный токен авторизации для внешних ИИ-клиентов (Bearer Token)">Секретный API токен</span></label>
+                <div class="col-sm-8">
+                  <div class="input-group">
+                    <input type="text" name="module_opencart_ai_token" value="{{ module_opencart_ai_token }}" id="input-token" class="form-control" readonly />
+                    <span class="input-group-btn">
+                      <button type="button" class="btn btn-default" onclick="copyToken()" title="Скопировать"><i class="fa fa-copy"></i> Копировать</button>
+                      <button type="button" class="btn btn-warning" onclick="generateNewToken()" title="Сгенерировать новый"><i class="fa fa-refresh"></i> Новый токен</button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-endpoint">URL эндпоинта MCP</label>
+                <div class="col-sm-10">
+                  <input type="text" value="{{ endpoint_url }}" id="input-endpoint" class="form-control" readonly />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-mutations"><span data-toggle="tooltip" title="По умолчанию выключено. Если включить, ИИ сможет менять цены, остатки и статусы заказов.">Режим изменения данных (Mutation Mode)</span></label>
+                <div class="col-sm-10">
+                  <select name="module_opencart_ai_allow_mutations" id="input-mutations" class="form-control">
+                    {% if module_opencart_ai_allow_mutations %}
+                    <option value="1" selected="selected">Включено (ИИ может изменять цены и остатки)</option>
+                    <option value="0">Выключено (Только чтение / Безопасный режим)</option>
+                    {% else %}
+                    <option value="1">Включено (ИИ может изменять цены и остатки)</option>
+                    <option value="0" selected="selected">Выключено (Только чтение / Безопасный режим)</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-pii"><span data-toggle="tooltip" title="Автоматически маскирует пароли, email и номера телефонов клиентов звездочками (***).">Маскирование GDPR / PII данных</span></label>
+                <div class="col-sm-10">
+                  <select name="module_opencart_ai_mask_pii" id="input-pii" class="form-control">
+                    {% if module_opencart_ai_mask_pii %}
+                    <option value="1" selected="selected">Да (Рекомендуется)</option>
+                    <option value="0">Нет</option>
+                    {% else %}
+                    <option value="1">Да (Рекомендуется)</option>
+                    <option value="0" selected="selected">Нет</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="input-ips"><span data-toggle="tooltip" title="Оставьте пустым, чтобы разрешить доступ с любых IP-адресов.">Белый список IP-адресов</span></label>
+                <div class="col-sm-10">
+                  <textarea name="module_opencart_ai_allowed_ips" rows="3" id="input-ips" class="form-control" placeholder="127.0.0.1, 192.168.1.100">{{ module_opencart_ai_allowed_ips }}</textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: INTEGRATION -->
+            <div class="tab-pane" id="tab-integration">
+              <div class="alert alert-info">
+                <h4><i class="fa fa-info-circle"></i> Быстрое подключение к Claude Desktop</h4>
+                <p>Добавьте следующий блок в файл конфигурации <code>claude_desktop_config.json</code>:</p>
+                <ul>
+                  <li><strong>macOS:</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+                  <li><strong>Windows:</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li>
+                </ul>
+              </div>
+
+              <pre style="background:#272822; color:#f8f8f2; padding:15px; border-radius:5px; font-size:13px;"><code>{{ claude_snippet }}</code></pre>
+
+              <hr />
+
+              <h4><i class="fa fa-terminal"></i> Доступные инструменты (MCP Tools):</h4>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr><th>Инструмент</th><th>Категория</th><th>Описание</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>oc_list_products</code></td><td>Каталог</td><td>Список товаров с фильтрацией по категории, статусу, остаткам.</td></tr>
+                  <tr><td><code>oc_get_product</code></td><td>Каталог</td><td>Полная карточка товара: атрибуты, опции, спецпредложения.</td></tr>
+                  <tr><td><code>oc_search_products</code></td><td>Каталог</td><td>Умный поиск по названию, модели и артикулу (SKU).</td></tr>
+                  <tr><td><code>oc_update_product_price</code></td><td>Мутации</td><td>Обновление базовой цены товара (требует Mutation Mode).</td></tr>
+                  <tr><td><code>oc_update_product_stock</code></td><td>Мутации</td><td>Списание или пополнение остатка на складе.</td></tr>
+                  <tr><td><code>oc_list_orders</code></td><td>Заказы</td><td>Список заказов с фильтрацией по статусу и дате.</td></tr>
+                  <tr><td><code>oc_get_order</code></td><td>Заказы</td><td>Детали заказа: товары, стоимость, доставка, история.</td></tr>
+                  <tr><td><code>oc_get_sales_analytics</code></td><td>Аналитика</td><td>Отчет по выручке, среднему чеку, топ-товарам за период.</td></tr>
+                  <tr><td><code>oc_get_inventory_alerts</code></td><td>Склад</td><td>Список позиций с остатком ниже порогового значения.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- TAB 3: PROMPTS -->
+            <div class="tab-pane" id="tab-prompts">
+              <h4><i class="fa fa-magic"></i> Готовые запросы для отправки вашему ИИ-ассистенту:</h4>
+
+              <div class="panel panel-info">
+                <div class="panel-heading"><strong>1. Поиск неликвидных товаров и скидки</strong></div>
+                <div class="panel-body">
+                  <code>"Проанализируй каталог OpenCart: найди все товары с остатком больше 10 шт, по которым не было продаж за последние 90 дней. Сформируй список и предложи снизить на них цену на 15%."</code>
+                </div>
+              </div>
+
+              <div class="panel panel-info">
+                <div class="panel-heading"><strong>2. Оформление возврата заказа</strong></div>
+                <div class="panel-body">
+                  <code>"Посмотри детали заказа #402. Проверь состав товаров, смени статус заказа на 'Возврат' и увеличь складские остатки возвращенных позиций."</code>
+                </div>
+              </div>
+
+              <div class="panel panel-info">
+                <div class="panel-heading"><strong>3. Еженедельный отчет руководству</strong></div>
+                <div class="panel-body">
+                  <code>"Сделай аналитический отчет за прошедшую неделю: общая сумма выручки, количество выполненных заказов, средний чек и топ-5 самых продаваемых товаров."</code>
+                </div>
+              </div>
+
+              <div class="panel panel-info">
+                <div class="panel-heading"><strong>4. Генерация SEO-описаний</strong></div>
+                <div class="panel-body">
+                  <code>"Найди 5 товаров в категории 'Электроника', у которых пустое поле meta_description. Напиши для них продающие описания до 160 символов с ключевыми словами."</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+function copyToken() {
+  var copyText = document.getElementById("input-token");
+  copyText.select();
+  document.execCommand("copy");
+  alert("Секретный токен скопирован в буфер обмена!");
+}
+
+function generateNewToken() {
+  if (confirm("Вы уверены, что хотите создать новый токен? Старый токен перестанет действовать!")) {
+    $.ajax({
+      url: 'index.php?route=extension/module/opencart_ai/generateToken&user_token={{ user_token }}',
+      dataType: 'json',
+      success: function(json) {
+        if (json['token']) {
+          $('#input-token').val(json['token']);
+          alert("Новый токен сгенерирован! Не забудьте нажать 'Сохранить'.");
+        }
+      }
+    });
+  }
+}
+</script>
+{{ footer }}

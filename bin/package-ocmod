@@ -1,0 +1,66 @@
+#!/usr/bin/env php
+<?php
+/**
+ * OpenCart-AI Package Builder
+ * Generates ready-to-install opencart-ai.ocmod.zip for OpenCart 2.x & 3.x
+ *
+ * @author Anton Barinov <https://github.com/Anton-Barinov>
+ * @license MIT
+ */
+
+$root = dirname(__DIR__);
+$distDir = $root . '/dist';
+$zipFile = $distDir . '/opencart-ai.ocmod.zip';
+
+if (!is_dir($distDir)) {
+    mkdir($distDir, 0755, true);
+}
+
+if (file_exists($zipFile)) {
+    unlink($zipFile);
+}
+
+echo "📦 Packaging OpenCart-AI OCMOD extension...\n";
+
+$zip = new ZipArchive();
+if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+    fwrite(STDERR, "❌ Failed to create zip file at {$zipFile}\n");
+    exit(1);
+}
+
+// 1. Add install.xml
+$installXml = $root . '/install.xml';
+if (file_exists($installXml)) {
+    $zip->addFile($installXml, 'install.xml');
+    echo "  + Added install.xml\n";
+}
+
+// 2. Add upload/ directory recursively
+$uploadDir = $root . '/upload';
+$iterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($uploadDir, RecursiveDirectoryIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::SELF_FIRST
+);
+
+$count = 0;
+foreach ($iterator as $file) {
+    $filePath = $file->getRealPath();
+    $relativePath = 'upload/' . substr($filePath, strlen($uploadDir) + 1);
+
+    if ($file->isDir()) {
+        $zip->addEmptyDir($relativePath);
+    } elseif ($file->isFile()) {
+        // Skip hidden files (.DS_Store, etc.)
+        if (basename($filePath)[0] === '.') {
+            continue;
+        }
+        $zip->addFile($filePath, $relativePath);
+        $count++;
+    }
+}
+
+$zip->close();
+
+$sizeKb = round(filesize($zipFile) / 1024, 2);
+echo "✅ Successfully built: dist/opencart-ai.ocmod.zip ({$sizeKb} KB, {$count} files included)\n";
+echo "   Ready to upload via OpenCart Admin -> Extensions -> Installer!\n";
